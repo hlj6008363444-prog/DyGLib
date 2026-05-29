@@ -145,7 +145,20 @@ if __name__ == "__main__":
         early_stopping = EarlyStopping(patience=args.patience, save_model_folder=save_model_folder,
                                        save_model_name=args.save_model_name, logger=logger, model_name=args.model_name)
 
-        loss_func = nn.BCELoss()
+        # ---- class weights for imbalanced 3-class stance ----
+        num_classes = 3
+        train_labels_np = train_data.labels.astype(np.int64)
+        class_counts = np.bincount(train_labels_np, minlength=num_classes).astype(np.float32)
+
+        # w_c = N / (K * n_c)  (常用的反频率权重)
+        N = class_counts.sum()
+        class_weights = N / (num_classes * np.maximum(class_counts, 1.0))
+
+        class_weights = torch.tensor(class_weights, dtype=torch.float32).to(args.device)
+
+        logger.info(f"class_counts={class_counts.tolist()}, class_weights={class_weights.detach().cpu().tolist()}")
+        loss_func = nn.CrossEntropyLoss(weight=class_weights)
+        # -----------------------------------------------
 
         # set the dynamic_backbone in evaluation mode
         model[0].eval()
@@ -207,10 +220,12 @@ if __name__ == "__main__":
                     else:
                         raise ValueError(f"Wrong value for model_name {args.model_name}!")
                 # get predicted probabilities, shape (batch_size, )
-                predicts = model[1](x=batch_src_node_embeddings).squeeze(dim=-1).sigmoid()
-                labels = torch.from_numpy(batch_labels).float().to(predicts.device)
+                logits = model[1](x=batch_src_node_embeddings)  # (B, 3)
+                labels = torch.from_numpy(batch_labels).long().to(logits.device)  # (B,)
+                loss = loss_func(logits, labels)
 
-                loss = loss_func(input=predicts, target=labels)
+                # 用 probs 计算指标更直观（也方便你后面导出概率）
+                predicts = torch.softmax(logits, dim=-1)  # (B, 3)
 
                 train_total_loss += loss.item()
 

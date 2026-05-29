@@ -69,31 +69,24 @@ class MergeLayer(nn.Module):
 
 
 class MLPClassifier(nn.Module):
-    def __init__(self, input_dim: int, dropout: float = 0.1):
+    def __init__(self, input_dim: int, num_classes: int = 3, dropout: float = 0.1):
         """
-        Multi-Layer Perceptron Classifier.
+        Multi-Layer Perceptron Classifier (multi-class).
         :param input_dim: int, dimension of input
+        :param num_classes: int, number of classes
         :param dropout: float, dropout rate
         """
         super().__init__()
         self.fc1 = nn.Linear(input_dim, 80)
         self.fc2 = nn.Linear(80, 10)
-        self.fc3 = nn.Linear(10, 1)
+        self.fc3 = nn.Linear(10, num_classes)
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor):
-        """
-        multi-layer perceptron classifier forward process
-        :param x: Tensor, shape (*, input_dim)
-        :return:
-        """
-        # Tensor, shape (*, 80)
         x = self.dropout(self.act(self.fc1(x)))
-        # Tensor, shape (*, 10)
         x = self.dropout(self.act(self.fc2(x)))
-        # Tensor, shape (*, 1)
-        return self.fc3(x)
+        return self.fc3(x)  # logits, shape (B, num_classes)
 
 
 class MultiHeadAttention(nn.Module):

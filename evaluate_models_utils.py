@@ -158,24 +158,13 @@ def evaluate_model_node_classification(model_name: str, model: nn.Module, neighb
                                        evaluate_data: Data, loss_func: nn.Module, num_neighbors: int = 20, time_gap: int = 2000):
     """
     evaluate models on the node classification task
-    :param model_name: str, name of the model
-    :param model: nn.Module, the model to be evaluated
-    :param neighbor_sampler: NeighborSampler, neighbor sampler
-    :param evaluate_idx_data_loader: DataLoader, evaluate index data loader
-    :param evaluate_data: Data, data to be evaluated
-    :param loss_func: nn.Module, loss function
-    :param num_neighbors: int, number of neighbors to sample for each node
-    :param time_gap: int, time gap for neighbors to compute node features
-    :return:
     """
     if model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer']:
-        # evaluation phase use all the graph information
         model[0].set_neighbor_sampler(neighbor_sampler)
 
     model.eval()
 
     with torch.no_grad():
-        # store evaluate losses, trues and predicts
         evaluate_total_loss, evaluate_y_trues, evaluate_y_predicts = 0.0, [], []
         evaluate_idx_data_loader_tqdm = tqdm(evaluate_idx_data_loader, ncols=120)
         for batch_idx, evaluate_data_indices in enumerate(evaluate_idx_data_loader_tqdm):
@@ -185,16 +174,12 @@ def evaluate_model_node_classification(model_name: str, model: nn.Module, neighb
                 evaluate_data.node_interact_times[evaluate_data_indices], evaluate_data.edge_ids[evaluate_data_indices], evaluate_data.labels[evaluate_data_indices]
 
             if model_name in ['TGAT', 'CAWN', 'TCL']:
-                # get temporal embedding of source and destination nodes
-                # two Tensors, with shape (batch_size, node_feat_dim)
                 batch_src_node_embeddings, batch_dst_node_embeddings = \
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
                                                                       dst_node_ids=batch_dst_node_ids,
                                                                       node_interact_times=batch_node_interact_times,
                                                                       num_neighbors=num_neighbors)
             elif model_name in ['JODIE', 'DyRep', 'TGN']:
-                # get temporal embedding of source and destination nodes
-                # two Tensors, with shape (batch_size, node_feat_dim)
                 batch_src_node_embeddings, batch_dst_node_embeddings = \
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
                                                                       dst_node_ids=batch_dst_node_ids,
@@ -203,8 +188,6 @@ def evaluate_model_node_classification(model_name: str, model: nn.Module, neighb
                                                                       edges_are_positive=True,
                                                                       num_neighbors=num_neighbors)
             elif model_name in ['GraphMixer']:
-                # get temporal embedding of source and destination nodes
-                # two Tensors, with shape (batch_size, node_feat_dim)
                 batch_src_node_embeddings, batch_dst_node_embeddings = \
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
                                                                       dst_node_ids=batch_dst_node_ids,
@@ -212,22 +195,21 @@ def evaluate_model_node_classification(model_name: str, model: nn.Module, neighb
                                                                       num_neighbors=num_neighbors,
                                                                       time_gap=time_gap)
             elif model_name in ['DyGFormer']:
-                # get temporal embedding of source and destination nodes
-                # two Tensors, with shape (batch_size, node_feat_dim)
                 batch_src_node_embeddings, batch_dst_node_embeddings = \
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
                                                                       dst_node_ids=batch_dst_node_ids,
                                                                       node_interact_times=batch_node_interact_times)
             else:
                 raise ValueError(f"Wrong value for model_name {model_name}!")
-            # get predicted probabilities, shape (batch_size, )
-            predicts = model[1](x=batch_src_node_embeddings).squeeze(dim=-1).sigmoid()
-            labels = torch.from_numpy(batch_labels).float().to(predicts.device)
 
-            loss = loss_func(input=predicts, target=labels)
+            # ---- 3-class node classification ----
+            logits = model[1](x=batch_src_node_embeddings)  # (B, 3)
+            labels = torch.from_numpy(batch_labels).long().to(logits.device)  # (B,)
+            loss = loss_func(logits, labels)
+            predicts = torch.softmax(logits, dim=-1)  # (B, 3)
+            # -----------------------------------
 
             evaluate_total_loss += loss.item()
-
             evaluate_y_trues.append(labels)
             evaluate_y_predicts.append(predicts)
 

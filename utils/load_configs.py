@@ -12,7 +12,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     # arguments
     parser = argparse.ArgumentParser('Interface for the link prediction task')
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
-                        choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
+                        choices=['politisky_individual_harris_3class','politisky_individual_trump_3class','politisky_individual_trump','politisky_individual_harris','wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'DyGFormer'])
@@ -243,7 +243,7 @@ def get_node_classification_args():
     """
     # arguments
     parser = argparse.ArgumentParser('Interface for the node classification task')
-    parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia', choices=['wikipedia', 'reddit'])
+    parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia', choices=['politisky_individual_trump_3class','politisky_individual_harris_3class','politisky_individual_trump', 'politisky_individual_harris', 'wikipedia', 'reddit'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer'])
@@ -282,7 +282,8 @@ def get_node_classification_args():
         parser.print_help()
         sys.exit()
 
-    assert args.dataset_name in ['wikipedia', 'reddit'], f'Wrong value for dataset_name {args.dataset_name}!'
+    assert args.dataset_name in ['politisky_individual_harris_3class','politisky_individual_trump_3class','politisky_individual_trump', 'politisky_individual_harris', 'wikipedia', 'reddit'], \
+    f'Wrong value for dataset_name {args.dataset_name}!'
     if args.load_best_configs:
         load_node_classification_best_configs(args=args)
 

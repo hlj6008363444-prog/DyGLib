@@ -1,0 +1,12 @@
+{
+    "validate metrics": {
+        "accuracy": "0.5978",
+        "macro_f1": "0.3101",
+        "weighted_f1": "0.4986"
+    },
+    "test metrics": {
+        "accuracy": "0.5883",
+        "macro_f1": "0.3113",
+        "weighted_f1": "0.4963"
+    }
+}
